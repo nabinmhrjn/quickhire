@@ -19,7 +19,7 @@ export default function DashboardLayout() {
     );
   }
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/" replace />;
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -28,7 +28,7 @@ export default function DashboardLayout() {
         <header className="h-14 bg-background border-b flex items-center justify-between px-6 shrink-0">
           <div />
           <div className="flex items-center gap-3">
-            <RoleSwitcher activeRole={activeRole} />
+            <RoleSwitcher />
             <ThemeToggle />
             <NotificationBell />
             <div className="flex items-center gap-2">

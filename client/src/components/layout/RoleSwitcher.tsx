@@ -12,24 +12,16 @@ export function RoleSwitcher() {
     navigate(newRole === "WORKER" ? "/worker" : "/client");
   }
 
+  const targetRole = activeRole === "CLIENT" ? "WORKER" : "CLIENT";
+
   return (
-    <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-      <Button
-        size="sm"
-        variant={activeRole === "CLIENT" ? "default" : "ghost"}
-        className="h-7 text-xs px-3"
-        onClick={() => handleSwitch("CLIENT")}
-      >
-        Client
-      </Button>
-      <Button
-        size="sm"
-        variant={activeRole === "WORKER" ? "default" : "ghost"}
-        className="h-7 text-xs px-3"
-        onClick={() => handleSwitch("WORKER")}
-      >
-        Worker
-      </Button>
-    </div>
+    <Button
+      size="sm"
+      variant="outline"
+      className="h-7 text-xs px-3"
+      onClick={() => handleSwitch(targetRole)}
+    >
+      Switch to {targetRole === "CLIENT" ? "Client" : "Worker"}
+    </Button>
   );
 }
