@@ -13,7 +13,9 @@ interface AuthContextType {
   activeRole: "CLIENT" | "WORKER";
   accessToken: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  hasClientActivity: boolean;
+  hasWorkerActivity: boolean;
+  login: (email: string, password: string) => Promise<"CLIENT" | "WORKER">;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   setActiveRole: (role: "CLIENT" | "WORKER") => void;
@@ -33,10 +35,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [activeRole, setActiveRoleState] = useState<"CLIENT" | "WORKER">(() => {
     return (localStorage.getItem("activeRole") as "CLIENT" | "WORKER") ?? "CLIENT";
   });
+  const [hasClientActivity, setHasClientActivity] = useState(false);
+  const [hasWorkerActivity, setHasWorkerActivity] = useState(false);
 
   const applyToken = useCallback((token: string) => {
     setToken(token);
     setAccessToken(token);
+  }, []);
+
+  const detectActivity = useCallback(async (userId: string) => {
+    const [jobsRes, appsRes] = await Promise.allSettled([
+      api.get(`/api/jobs?clientId=${userId}&limit=1`),
+      api.get("/api/applications?limit=1"),
+    ]);
+    const hasClient = jobsRes.status === "fulfilled" && jobsRes.value.data.total > 0;
+    const hasWorker = appsRes.status === "fulfilled" && appsRes.value.data.total > 0;
+    setHasClientActivity(hasClient);
+    setHasWorkerActivity(hasWorker);
+    return { hasClient, hasWorker };
   }, []);
 
   const refreshUser = useCallback(async () => {
@@ -52,22 +68,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         applyToken(res.data.accessToken);
         return api.get("/api/users/me");
       })
-      .then((res) => setUser(mapUser(res.data.user)))
+      .then((res) => {
+        const u = mapUser(res.data.user);
+        setUser(u);
+        return detectActivity(u.id);
+      })
       .catch(() => {
         setToken(null);
         setUser(null);
       })
       .finally(() => setLoading(false));
-  }, [applyToken]);
+  }, [applyToken, detectActivity]);
 
   const login = useCallback(
     async (email: string, password: string) => {
       const res = await api.post("/api/auth/login", { email, password });
       applyToken(res.data.accessToken);
       const meRes = await api.get("/api/users/me");
-      setUser(mapUser(meRes.data.user));
+      const u = mapUser(meRes.data.user);
+      setUser(u);
+
+      const { hasClient, hasWorker } = await detectActivity(u.id);
+      const role = hasWorker && !hasClient ? "WORKER" : "CLIENT";
+      localStorage.setItem("activeRole", role);
+      setActiveRoleState(role);
+      return role;
     },
-    [applyToken]
+    [applyToken, detectActivity]
   );
 
   const register = useCallback(async (name: string, email: string, password: string) => {
@@ -88,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, activeRole, accessToken, loading, login, register, logout, setActiveRole, refreshUser }}
+      value={{ user, activeRole, accessToken, loading, hasClientActivity, hasWorkerActivity, login, register, logout, setActiveRole, refreshUser }}
     >
       {children}
     </AuthContext.Provider>

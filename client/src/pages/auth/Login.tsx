@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Login() {
-  const { login, activeRole } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -21,8 +21,8 @@ export default function Login() {
     setPending(true);
     setError("");
     try {
-      await login(email, password);
-      navigate(activeRole === "WORKER" ? "/worker" : "/client");
+      const role = await login(email, password);
+      navigate(role === "WORKER" ? "/worker" : "/client");
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setError(msg ?? "Invalid email or password");

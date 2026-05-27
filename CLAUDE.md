@@ -77,6 +77,13 @@ GET            /api/health
 2. Client stores `accessToken` in React state and module-level var (`setToken`)
 3. On 401, Axios interceptor calls `POST /api/auth/refresh` (cookie sent automatically) → retries original request
 4. Active role (`CLIENT`/`WORKER`) stored in `localStorage` key `activeRole`
+5. After login, `AuthContext` detects activity via two parallel calls (`GET /api/jobs?clientId=<id>&limit=1` and `GET /api/applications?limit=1`) and auto-sets role: worker-only → `WORKER`, otherwise → `CLIENT`. `login()` returns the determined role so `Login.tsx` can navigate immediately without a stale closure.
+6. Same activity detection runs on session restore (page refresh) to populate `hasClientActivity` / `hasWorkerActivity` flags in context.
+
+## Role system
+- **RoleSwitcher** (`components/layout/RoleSwitcher.tsx`): single button — "Switch to Client" or "Switch to Worker" — always visible so users can freely move between roles regardless of activity history.
+- **Route guards** (`App.tsx` — `ClientGuard` / `WorkerGuard`): layout-route wrappers inside `DashboardLayout`. If `activeRole` doesn't match the route tree, they redirect to the correct dashboard (`/client` or `/worker`). Shared routes (`/profile`, `/notifications`) are unguarded.
+- **`hasClientActivity` / `hasWorkerActivity`**: boolean flags in `AuthContext`, true if the user has posted at least one job / submitted at least one application. Available via `useAuth()`.
 
 ## Data model highlights
 - **User**: has `location` (GeoJSON Point), `skills[]` (category + yearsExp), `searchRadius` (meters), separate `clientRating` / `workerRating`

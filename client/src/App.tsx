@@ -1,6 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 import Landing from "@/pages/Landing";
 import Login from "@/pages/auth/Login";
@@ -22,6 +22,18 @@ import EditProfile from "@/pages/profile/EditProfile";
 import UserProfile from "@/pages/profile/UserProfile";
 
 
+function ClientGuard() {
+  const { activeRole } = useAuth();
+  if (activeRole === "WORKER") return <Navigate to="/worker" replace />;
+  return <Outlet />;
+}
+
+function WorkerGuard() {
+  const { activeRole } = useAuth();
+  if (activeRole === "CLIENT") return <Navigate to="/client" replace />;
+  return <Outlet />;
+}
+
 export default function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -34,17 +46,21 @@ export default function App() {
 
           <Route element={<DashboardLayout />}>
             {/* Client */}
-            <Route path="/client" element={<ClientDashboard />} />
-            <Route path="/client/jobs" element={<ClientJobs />} />
-            <Route path="/client/jobs/new" element={<PostJob />} />
-            <Route path="/client/jobs/:jobId" element={<ClientJobDetail />} />
-            <Route path="/client/jobs/:jobId/edit" element={<EditJob />} />
+            <Route element={<ClientGuard />}>
+              <Route path="/client" element={<ClientDashboard />} />
+              <Route path="/client/jobs" element={<ClientJobs />} />
+              <Route path="/client/jobs/new" element={<PostJob />} />
+              <Route path="/client/jobs/:jobId" element={<ClientJobDetail />} />
+              <Route path="/client/jobs/:jobId/edit" element={<EditJob />} />
+            </Route>
 
             {/* Worker */}
-            <Route path="/worker" element={<WorkerDashboard />} />
-            <Route path="/worker/jobs" element={<BrowseJobs />} />
-            <Route path="/worker/jobs/:jobId" element={<WorkerJobDetail />} />
-            <Route path="/worker/applications" element={<MyApplications />} />
+            <Route element={<WorkerGuard />}>
+              <Route path="/worker" element={<WorkerDashboard />} />
+              <Route path="/worker/jobs" element={<BrowseJobs />} />
+              <Route path="/worker/jobs/:jobId" element={<WorkerJobDetail />} />
+              <Route path="/worker/applications" element={<MyApplications />} />
+            </Route>
 
             {/* Shared */}
             <Route path="/notifications" element={<Notifications />} />
